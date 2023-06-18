@@ -1,0 +1,22 @@
+@mixin uiElement {
+    position: absolute;
+    z-index: 10;
+}
+
+@mixin transformCenter {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@mixin cover {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+@keyframes fade {
+    0% {opacity: 0}
+    100% {opacity: 1}
+}
