@@ -107,29 +107,47 @@
     }
 </style>
 
+<script lang="ts" context="module">
+    import { currentUIElement } from "../components/game.svelte";
+
+    export const usedControllerCount = writable(0);
+    
+    export const configs = writable(playerManager.playerConfigs);
+
+    export function startGame() {
+        if (playerManager.playerConfigs.length >= 2) {
+            currentUIElement.set(Gamescreen);
+        }
+    }
+    
+    export function updatePlayerConfigUI() {
+        console.log("Trying to rerender...");
+        configs.set(playerManager.playerConfigs);
+    }
+</script>
+
 <script lang="ts">
     import Gamescreen from "./gamescreen.svelte";
     import { AbilityList } from "$lib/bomb/builtin/abilities";
-    import { PlayerConfig } from "$lib/bomb/player/playerconfig";
+    import { ControlConfigEnum, PlayerConfig } from "$lib/bomb/player/playerconfig";
     import Playerconfig from "../components/playerconfig.svelte";
-    import { CONSTANTS, Variables } from "$lib/bomb/static";
-    import { currentUIElement } from "../components/game.svelte";
+    import { CONSTANTS, Variables, networkManager, playerManager } from "$lib/bomb/static";
     import { fade } from "svelte/transition";
     import { Maps } from "$lib/bomb/builtin/maps";
+    import { writable } from "svelte/store";
     
-    let playerConfigs = Variables.playerConfigs;
-
-    function startGame() {
-        $currentUIElement = Gamescreen;
-    }
-
     function removeByUUID(uuid : string) {
-        playerConfigs = playerConfigs.filter(playerConfig => playerConfig.uuid != uuid);
+        playerManager.playerConfigs = playerManager.playerConfigs.filter(playerConfig => playerConfig.uuid != uuid);
+        networkManager?.sendPlayerRemove(uuid);
+        updatePlayerConfigUI();
     }
 
     function addNewPlayer() {
-        playerConfigs.push(new PlayerConfig(crypto.randomUUID(), AbilityList[0].ID!, playerConfigs.length < CONSTANTS.PLAYER_COLORS.length ? CONSTANTS.PLAYER_COLORS[playerConfigs.length] : 0xffffff));
-        playerConfigs = playerConfigs;
+        const playerConfig = new PlayerConfig(crypto.randomUUID(), AbilityList[0].ID!, playerManager.playerConfigs.length < CONSTANTS.PLAYER_COLORS.length ? CONSTANTS.PLAYER_COLORS[playerManager.playerConfigs.length] : 0xffffff, ControlConfigEnum.KEYBOARD);
+        playerManager.playerConfigs.push(playerConfig);
+        playerManager.playerConfigs = playerManager.playerConfigs;
+        networkManager?.sendPlayerConfig(playerConfig);
+        updatePlayerConfigUI();
     }
 
     function updateMap(event : Event) {
@@ -156,14 +174,14 @@
         <label for="bombTime">Bomb Time</label>
         <input type="range" name="Bomb Time" id="bombTime" bind:value={Variables.maxBombTime} min="1" max="60" />
     </div>
-    <button id="startGame" on:click={startGame}>
+    <button id="startGame" on:click={() => {if (networkManager) {networkManager.startGame()} else {startGame()}}}>
         <span>Start Game</span>
     </button>
     <div id="playerList">
-        {#each playerConfigs as playerConfig}
-            <Playerconfig removeEvent={playerConfigs.length > 2 ? removeByUUID : undefined} playerConfig={playerConfig} />
+        {#each $configs as playerConfig}
+            <Playerconfig removeEvent={playerManager.playerConfigs.length > 2 ? removeByUUID : undefined} playerConfig={playerConfig} />
         {/each}
-        {#if playerConfigs.length < 4}
+        {#if $configs.length < 4}
             <div id="addNewPlayer" on:click={addNewPlayer} on:keydown={addNewPlayer}>
                 <button>＋</button>
             </div>

@@ -29,6 +29,13 @@
     export const game = writable({} as Phaser.Game);
     export let currentUIElement : Writable<ConstructorOfATypedSvelteComponent> = writable(Titlescreen);
 
+    // Workaround for unsecure contexts
+    if (!window.isSecureContext) {
+        import("uuid").then((something) => {
+            (<any>window).crypto.randomUUID = something.v4;
+        })
+    }
+
     // Expose variables to window and globalThis
     (<any>window).BombTag = {
         modManager: modManager,
@@ -55,13 +62,11 @@
     import { onMount } from "svelte";
     import Titlescreen from "../screens/titlescreen.svelte";
 
-    import * as Phaser from "phaser";
     import { CONSTANTS, GameObjects, modManager, Variables } from "$lib/bomb/static";
     import { MainGame } from "../screens/gamescreen.svelte";
     import Gamescreen from "../screens/gamescreen.svelte";
     import { ValidateMap } from "$lib/bomb/types/map";
     import { Maps } from "$lib/bomb/builtin/maps";
-    import type ModManager from "$lib/bomb/mod/manager";
 
     let gameElem : HTMLDivElement;
 

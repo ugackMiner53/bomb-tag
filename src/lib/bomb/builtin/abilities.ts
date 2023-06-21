@@ -1,5 +1,5 @@
 import Ability from "../types/ability";
-import { CONSTANTS, GameObjects, Variables } from "../static";
+import { CONSTANTS, GameObjects, Variables, playerManager } from "../static";
 import type { Player } from "../player/player";
 
 export class DashAbility extends Ability 
@@ -125,29 +125,31 @@ export class RewindAbility extends Ability {
     }
 
     Use = () : void => {
-        this.storedPosition = this.player.body!.position.clone();
-        this.particle?.explode(10, this.storedPosition.x, this.storedPosition.y);
-
-        this.player.scene.time.delayedCall(this.duration, () => {
-            this.particle?.stop();
-            this.player.setAlpha(0.5);
-            if (this.player.body) {
-                this.player.canMove = false;
-                this.player.body!.checkCollision.none = true;
-                this.player.setVelocity(0);
-                this.player.scene.physics.moveTo(this.player, this.storedPosition!.x, this.storedPosition!.y, 1, 250);
-                this.player.scene.time.delayedCall(250, () => {
-                    this.player.setAlpha(1);
-                    if (GameObjects.players.length > 1) {
+        if (this.player.body) {
+            this.storedPosition = this.player.body!.position.clone();
+            this.particle?.explode(10, this.storedPosition.x, this.storedPosition.y);
+    
+            this.player.scene.time.delayedCall(this.duration, () => {
+                this.particle?.stop();
+                this.player.setAlpha(0.5);
+                if (this.player.body) {
+                    this.player.canMove = false;
+                    this.player.body!.checkCollision.none = true;
+                    this.player.setVelocity(0);
+                    this.player.scene.physics.moveTo(this.player, this.storedPosition!.x, this.storedPosition!.y, 1, 250);
+                    this.player.scene.time.delayedCall(250, () => {
+                        this.player.setAlpha(1);
                         this.player.body!.checkCollision.none = false;
                         this.player.canMove = true;
                         this.player.setPosition(this.storedPosition?.x, this.storedPosition?.y);
                         this.storedPosition = undefined;
                         this.player.setVelocity(0);
-                    }
-                })
-            }
-        })
+                        // if (playerManager.players.size > 1) {
+                        // }
+                    })
+                }
+            })
+        }
         super.Use();
     
     }
@@ -159,7 +161,7 @@ export class PushAbility extends Ability {
     cooldown = 3000;
 
     Use = () : void => {
-        GameObjects.players.forEach((player : Player) => {
+        playerManager.players.forEach((player : Player) => {
             if (player != this.player && Phaser.Math.Distance.Between(this.player.x, this.player.y, player.x, player.y) < 300) {
                 const vel = Phaser.Math.Vector2.RIGHT.rotate(Phaser.Math.Angle.Between(this.player.x, this.player.y, player.x, player.y)).normalize().multiply({x: CONSTANTS.SPEED, y: CONSTANTS.SPEED});
                 player.canMove = false;

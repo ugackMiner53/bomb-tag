@@ -54,6 +54,7 @@
 <script lang="ts">
     import { currentUIElement } from "../components/game.svelte";
     import Selectionscreen from "./selectionscreen.svelte";
+    import Multiplayerscreen from "./multiplayerscreen.svelte";
     import Modscreen from "./modscreen.svelte";
 </script>
 
@@ -61,7 +62,7 @@
     <img src="/assets/logo.png" alt="Bomb Tag" />
     <div class="buttons">
         <button on:click={() => {$currentUIElement = Selectionscreen}}>Singleplayer</button>
-        <button>Multiplayer</button>
+        <button on:click={() => {$currentUIElement = Multiplayerscreen}}>Multiplayer</button>
         <button on:click={() => {$currentUIElement = Modscreen}}>Mods</button>
     </div>
 </div>

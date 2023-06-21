@@ -1,151 +1,205 @@
-// import type { Player } from "../player/player";
-// import type { NetworkPlayer } from "./netplayer";
-// import { GameObjects, Variables } from "../static";
-// import { PlayerConfig } from "../player/playerconfig";
+import type { Player } from "../player/player";
+import { Variables, playerManager } from "../static";
+import { ControlConfigEnum, PlayerConfig } from "../player/playerconfig";
+import { startGame, updatePlayerConfigUI } from "../../../routes/screens/selectionscreen.svelte";
 
-// export default class NetworkManager {
+export default class NetworkManager {
 
-//     server : WebSocket;
+    server : WebSocket;
 
-//     uuid : string;
-//     netPlayers = {} as {[uuid : string] : NetworkPlayer};
-//     last : {
-//         position : Phaser.Math.Vector2;
-//         abilityUse : boolean;
-//         bomb : boolean;
-//     }
+    constructor(serverip : string, callback? : () => void) {
+        console.log(`Connecting to ${serverip}...`);
+        this.server = new WebSocket(serverip);
+        this.server.onmessage = (message : MessageEvent<string>) => {
+            this.HandleMessage(JSON.parse(message.data));                        
+        }
+        this.server.onopen = () => {
+            console.log("Connected!");
+            callback?.();
+        }
+    }
 
-//     constructor(serverip : string) {
-//         console.log(`Connecting to ${serverip}...`);
-//         this.server = new WebSocket(serverip);
-//         this.server.onmessage = (message : MessageEvent<string>) => {
-//             this.HandleMessage(JSON.parse(message.data));                        
-//         }
-//         this.server.onopen = () => {
-//             console.log("Connected!");
-//         }
-//     }
+    EditPlayerConfig(newConfig : {uuid : string, ability : string, color : number}) {
+        console.log(`Editing ${newConfig.uuid} to have ${newConfig.ability} and ${newConfig.color}`);
+        const playerConfig = playerManager.playerConfigs.find(config => config.uuid == newConfig.uuid);
+        if (!playerConfig) {
+            console.log("No player, creating new one!");
+            playerManager.playerConfigs.push(new PlayerConfig(newConfig.uuid, newConfig.ability, newConfig.color, ControlConfigEnum.NETWORK));
+        } else {
+            console.log("Editing existing player!");
+            playerConfig.ability = newConfig.ability;
+            playerConfig.color = newConfig.color;
+        }
+        updatePlayerConfigUI();
+    }
 
-//     HandleMessage(data : any) {
-//         // console.log(data);
-//         switch (data.type) {
-//             // User Events
-//             case "uuid":
-//                 this.uuid = data.uuid;
-//                 break;
+    HandleMessage(data : any) {
+        // console.log(data);
+        switch (data.type) {
 
-//             // Game Events
-//             case "start":
-//                 SelectionScene.instance.StartGameEvent();
-//                 break;
+            case "start": {
+                startGame();
+                break;
+            }
 
-//             case "playerInfo":
-//                 console.log("Recieved playerinfo");
-//                 const playerInfo = Variables.playerConfigs.find(config => config.uuid == data.uuid);
-//                 if (!playerInfo) {
-//                     SelectionScene.instance.AddNewPlayerUI();
-//                     Variables.playerConfigs.push(new PlayerConfig(data.ability, data.color, data.uuid));
-//                 } else {
-//                     playerInfo.ability = data.ability;
-//                     playerInfo.color = data.color;
-//                 }
-//                 break;
+            case "playerConfig": {
+                console.log("Recieved playerconfig");
+                this.EditPlayerConfig(data.playerConfig);
+                break;
+            }
 
-//             // Player Events
-//             case "playerData":
-//                 this.netPlayers[data.uuid].Sync(
-//                     {
-//                         x: data.position.x,
-//                         y: data.position.y
-//                     } as Phaser.Math.Vector2,
-//                     {
-//                         x: data.velocity.x,
-//                         y: data.velocity.y
-//                     } as Phaser.Math.Vector2,
-//                 )
-//                 break;
+            case "allPlayerConfigs": {
+                console.log("Recieved all playerConfigs");
+                (<{uuid : string, ability : string, color : number}[]>data.playerConfigs).forEach(playerConfig => {
+                    this.EditPlayerConfig(playerConfig);
+                });
+                break;
+            }
+
+            case "playerRemove": {
+                playerManager.playerConfigs = playerManager.playerConfigs.filter(playerConfig => playerConfig.uuid != data.uuid);
+                updatePlayerConfigUI();
+                break;
+            }
+
+            // Player Events
+            case "playerData": {
+                playerManager.netPlayers.get(data.uuid)?.Sync(
+                    {
+                        x: data.position.x,
+                        y: data.position.y
+                    } as Phaser.Math.Vector2,
+                    {
+                        x: data.velocity.x,
+                        y: data.velocity.y
+                    } as Phaser.Math.Vector2,
+                    data.hasBomb
+                )
+                break;
+            }
             
-//             case "playerAbility":
-//                 this.netPlayers[data.uuid].ability?.Recharge();
-//                 this.netPlayers[data.uuid].ability?.Use();
-//                 break;
-            
-//             case "playerTag":
-//                 if (data.uuid == this.uuid) {
-//                     Variables.mainPlayer?.Tag(true);
-//                 }
-//                 Object.keys(this.netPlayers).forEach(uuid => {
-//                     if (uuid == data.uuid) {
-//                         this.netPlayers[data.uuid].Tag(true);
-//                     } else if (this.netPlayers[data.uuid].hasBomb) {
-//                         this.netPlayers[data.uuid].Tag(false);
-//                     }
-//                 })
-//                 break;
+            case "playerAbility": {
+                playerManager.netPlayers.get(data.uuid)?.ability?.Recharge(); // There *must* be some better way to do this!
+                playerManager.netPlayers.get(data.uuid)?.ability?.Use();
+                break;
+            }
 
-//             default:
-//                 console.log(`Unrecognized packet ${data.type}`);
-//         }
-//     }
+            case "playerTag": {
+                // Why shouldn't we loop over all players here, regardless of net status? Shouldn't we trust the server?
+                // if (playerManager.localPlayers.has(data.taggedUUID)) {
+                //     playerManager.localPlayers.get(data.taggedUUID)?.Tag(true);
+                // }
+                // playerManager.netPlayers.forEach((player, uuid) => {
+                //     if (uuid == data.taggedUUID) {
+                //         player.Tag(true);
+                //     } else if (player.hasBomb) {
+                //         player.Tag(false);
+                //     }
+                // })
+                playerManager.players.forEach((player, uuid) => {
+                    if (uuid == data.taggedUUID) {
+                        player.Tag(true);
+                    } else if (player.hasBomb) {
+                        player.Tag(false);
+                    }
+                })
+                break;
+            }
 
-//     sendGameInfo() {
-//         // dont wanna
-//     }
+            case "playerExplode": {
+                console.log(`${data.explodedUUID} should fucking die`);
+                const player = playerManager.players.get(data.explodedUUID);
+                player?.Explode();
+                playerManager.players.delete(data.explodedUUID);
+                playerManager.netPlayers.delete(data.explodedUUID);
+                playerManager.localPlayers.delete(data.explodedUUID);
+                Variables.bombTime = 0;
+                Variables.flashDelay = 1;
+                break;
+            }
 
-//     sendPlayerInfo() {
-//         this.send({
-//             type: "playerInfo",
-//             ability: (<HTMLSelectElement>SelectionScene.UI.playerList.children[0].querySelector(".abilitySelect")).value,
-//             color: parseInt((<HTMLInputElement>SelectionScene.UI.playerList.children[0].querySelector('.colorSelect')).value.slice(1), 16)
-//         });
-//     }
+            default:
+                console.log(`Unrecognized packet ${data.type}`);
+        }
+    }
 
-//     startGame() {
-//         this.send({
-//             type: "start"
-//         })
-//     }
 
-//     sendPlayerData() {
-//         if (Variables.mainPlayer) {
-//             this.send({
-//                 type: "playerData",
-//                 position: {
-//                     x: Variables.mainPlayer.x,
-//                     y: Variables.mainPlayer.y
-//                 },
-//                 velocity: {
-//                     x: Variables.mainPlayer.body?.velocity.x,
-//                     y: Variables.mainPlayer.body?.velocity.y
-//                 },
-//                 bomb: Variables.mainPlayer.hasBomb
-//             })
-//         } else {
-//             console.log("Attempting to send playerData, but finding no main player!");
-//         }
+    sendGameInfo() {
+        // dont wanna
+    }
 
-//     }
+    sendPlayerConfig(playerConfig : PlayerConfig) {
+        this.send({
+            type: "playerConfig",
+            uuid: playerConfig.uuid,
+            ability: playerConfig.ability,
+            color: playerConfig.color
+        });
+    }
 
-//     sendAbility() {
-//         this.send({
-//             type: "playerAbility"
-//         });
-//     }
+    sendPlayerRemove(uuid : string) {
+        this.send({
+            type: "playerRemove",
+            uuid: uuid
+        });
+    }
 
-//     sendTag(taggedPlayer : Player) {
-//         const uuid = Object.keys(this.netPlayers).find(uuid => this.netPlayers[uuid] == taggedPlayer);
-//         this.send({
-//             type: "playerTag",
-//             uuid: uuid
-//         });
-//     }
+    startGame() {
+        this.send({
+            type: "start"
+        })
+    }
 
-//     send(message : any) {
-//         this.server.send(JSON.stringify(message));
-//     }
+    sendPlayerData() {
+        const localPlayerData = {
+            type: "playerData",
+            players: <object[]>[],
+        };
+        playerManager.localPlayers.forEach((player, uuid) => {
+            const playerData = {
+                uuid: uuid,
+                position: {
+                    x: player.x,
+                    y: player.y
+                },
+                velocity: {
+                    x: player.body?.velocity.x,
+                    y: player.body?.velocity.y
+                },
+                bomb: player.hasBomb
+            };
+            localPlayerData.players.push(playerData);
+        })
+        this.send(localPlayerData);
+    }
 
-//     closeServer() {
-//         this.server.close();
-//     }
+    sendAbility(uuid : string) {
+        this.send({
+            type: "playerAbility",
+            uuid: uuid
+        });
+    }
 
-// }
+    sendTag(taggedPlayer : Player) {
+        this.send({
+            type: "playerTag",
+            taggedUUID: taggedPlayer.uuid
+        });
+    }
+
+    sendExplode(explodedPlayer : Player) {
+        this.send({
+            type: "playerExplode",
+            explodedUUID: explodedPlayer.uuid
+        })
+    }
+
+    send(message : unknown) {
+        this.server.send(JSON.stringify(message));
+    }
+
+    closeServer() {
+        this.server.close();
+    }
+
+}

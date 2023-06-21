@@ -12,17 +12,19 @@ export class NetworkPlayer extends Player {
     // color
     // ability
     
-    constructor(scene : Phaser.Scene, x : number, y : number, ability : Ability, color : number) {
-        super(scene, x, y, ability, {} as Control, color);
+    constructor(scene : Phaser.Scene, uuid : string, x : number, y : number, ability : Ability, color : number) {
+        super(scene, uuid, x, y, ability, {} as Control, color);
     }
 
     Update = () => {
         this.Movement();
     }
 
-    Sync(position : Phaser.Math.Vector2, velocity : Phaser.Math.Vector2) {
+    Sync(position : Phaser.Math.Vector2, velocity : Phaser.Math.Vector2, bomb : boolean) {
+        // console.log(`Syncing ${this.uuid}`);
         this.setPosition(position.x, position.y);
         this.setVelocity(velocity.x, velocity.y);
+        this.hasBomb = bomb;
     }
 
     Movement() {

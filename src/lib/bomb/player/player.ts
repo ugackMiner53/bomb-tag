@@ -1,6 +1,6 @@
 import type Ability from "../types/ability";
 import type * as Input from "../control/input";
-import { GameObjects, Variables } from "../static";
+import { GameObjects, Variables, networkManager } from "../static";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
     uuid : string;
@@ -19,9 +19,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     flashTimer : Phaser.Time.TimerEvent | null = null;
     coyoteTimer : Phaser.Time.TimerEvent | null = null;
 
-    constructor(scene : Phaser.Scene, x : number, y : number, ability : Ability, control : Input.Control, color : number, uuid?: string) {
+    constructor(scene : Phaser.Scene, uuid: string, x : number, y : number, ability : Ability, control : Input.Control, color : number) {
         super(scene, x, y, "player");
-        this.uuid = uuid || crypto.randomUUID();
+        this.uuid = uuid;
         
         this.color = color;
         this.setTint(color);
@@ -34,8 +34,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.add.existing(this);
     }
-
-    // Run once the object is created
+    
     Start() {
         this.setCollideWorldBounds(true);
         this.setGravityY(Variables.currentMap.gravity!);
@@ -102,10 +101,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (this.hasBomb || bomb) {
             addVelocity();
             this.Tag(bomb);
+            if (bomb) networkManager?.sendTag(this);
         }
-
+        
     }
-
+    
     Tag(bomb : boolean) {
         if (bomb && !this.hasBomb) {
             this.hasBomb = true;
@@ -115,23 +115,32 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.scene.time.delayedCall(1000, () => {
                 this.canMove = true;
             })
-            this.flashTimer = this.scene.time.addEvent({ 
-                delay: 500, 
-                callback: () => {
-                    if (this.hasBomb) {
-                        if (this.tintTopLeft != 0xff0000)
-                            this.setTint(0xff0000);
-                        else
+            if (!this.flashTimer) {
+                console.log(`No flash timer for ${this.uuid}, making new one`)
+                this.flashTimer = this.scene.time.addEvent({ 
+                    delay: 500, 
+                    callback: () => {
+                        console.log(this.hasBomb);
+                        if (this.hasBomb) {
+                            if (this.tintTopLeft != 0xff0000)
+                                this.setTint(0xff0000);
+                            else
+                                this.setTint(this.color);
+                            this.flashTimer!.timeScale = Variables.flashDelay;
+                        } else {
+                            console.log(`Flash timer callback for ${this.uuid} is now removing itself`);
                             this.setTint(this.color);
-                        this.flashTimer!.timeScale = Variables.flashDelay;
-                    } else {
-                        this.setTint(this.color);
-                        this.scene.time.removeEvent(this.flashTimer!);
-                        this.flashTimer = null;
-                    }
-                }, 
-                loop: true 
-            });
+                            this.scene.time.removeEvent(this.flashTimer!);
+                            this.flashTimer = null;
+                        }
+                    }, 
+                    loop: true 
+                });
+            } else {
+
+                console.log(`Existing flash timer for ${this.uuid}, not making new one`)
+            }
+            
         } 
         else if (!bomb && this.hasBomb) {
             this.hasBomb = false;
@@ -151,7 +160,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             blendMode: 'ADD',
         });
         particle.explode(100);
-
         this.destroy();
     }
 

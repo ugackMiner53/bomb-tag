@@ -1,9 +1,5 @@
-import { GameObjects, Variables } from "./static";
+import { Variables, playerManager } from "./static";
 import type { Player } from "./player/player";
-import KeyboardControl from "./control/keyboard";
-import GamepadControl from "./control/controller";
-import { KeyConfigs } from "./builtin/keyconfigs";
-
 // Load in the assets from the assets/ folder
 export function LoadAssets(scene : Phaser.Scene) {
     // Set the folder with the files in it
@@ -82,17 +78,8 @@ export function CreateObjects(scene : Phaser.Scene) {
 
     // Create the players
     const players = scene.physics.add.group();
-
-    Variables.playerConfigs.forEach((playerConfig, i) => {
-        let control;
-        if (i < scene.input.gamepad!.gamepads.length) {
-            control = new GamepadControl(scene, i);
-        } else {
-            control = new KeyboardControl(scene, KeyConfigs[i]);
-        }
-        const player = playerConfig.ConvertToPlayer(scene, control);
-        GameObjects.players.push(player);
-        player.setPosition(400, 100*i); // TODO: Change this to a dynamic system!
+    playerManager.createPlayers(scene);
+    playerManager.players.forEach(player => {
         players.add(player);
         player.Start();
     })

@@ -14,7 +14,7 @@ export default class GamepadControl implements Control {
             console.log("Connected!")
             this.gamepad = scene.input.gamepad?.getPad(gamepadIndex);
         } else {
-            console.log("Not Connected!")
+            console.error(`Gamepad #${gamepadIndex} not connected!`)
         }
     }
 

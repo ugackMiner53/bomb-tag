@@ -1,9 +1,6 @@
 <script lang="ts">
     import { game } from "../components/game.svelte";
-    import { Player } from "$lib/bomb/player/player";
-    import { SpeedAbility } from "$lib/bomb/builtin/abilities";
-    import KeyboardControl from "$lib/bomb/control/keyboard";
-    import { KeyConfigs } from "$lib/bomb/builtin/keyconfigs";
+    import type { Player } from "$lib/bomb/player/player";
     import { currentUIElement } from "../components/game.svelte";
     import Selectionscreen from "./selectionscreen.svelte";
 
@@ -13,7 +10,7 @@
 </script>
 
 <script lang="ts" context="module">
-    import { GameObjects, Variables, CONSTANTS, modManager } from "$lib/bomb/static";
+    import { GameObjects, Variables, CONSTANTS, modManager, playerManager, networkManager } from "$lib/bomb/static";
     import { LoadAssets, LoadCustomAssets, CreateObjects } from "$lib/bomb/assets";
 
     export class MainGame extends Phaser.Scene 
@@ -30,18 +27,21 @@
         create() {
             LoadCustomAssets(this, () => {
                 this.load.once(Phaser.Loader.Events.COMPLETE, () => {
-                    const thing = new Player(this, 0, 0, new SpeedAbility(), new KeyboardControl(this, KeyConfigs[0]), 0xffff00);
-                    thing.Start();
                     CreateObjects(this);
+                    GameObjects.smokeParticles = this.add.particles(0, 0, "smoke", {
+                        speed: 100,
+                        scale: { start: 1, end: 0 },
+                        blendMode: 'ADD',
+                        emitting: false
+                    });
                     this.time.delayedCall(3000, () => {
                         this.cameras.main.shake(350, 0.025);
                         // Add in smoke particles
-                        GameObjects.smokeParticles = this.add.particles(0, 0, "smoke", {
-                            speed: 100,
-                            scale: { start: 1, end: 0 },
-                            blendMode: 'ADD'
-                        });
-                        this.BombRandomPlayer();
+                        GameObjects.smokeParticles.start();
+                        if (!networkManager)
+                            this.BombRandomPlayer();
+                        Variables.bombTime = 0;
+                        Variables.flashDelay = 1;
                         this.time.addEvent(
                         { 
                             delay: 1000, 
@@ -61,22 +61,27 @@
         }
 
         CheckExplode = () => {
-            if (Variables.bombTime > Variables.maxBombTime && GameObjects.players.length > 1) {
-                const player = GameObjects.players.filter((player) => {
-                    return player.hasBomb === true;
-                });
+            if (Variables.bombTime > Variables.maxBombTime && playerManager.players.size > 1) {
+                const bombedPlayers = <Player[]>[];
+                playerManager.players.forEach(player => {
+                    if (player.hasBomb == true)
+                        bombedPlayers.push(player);
+                })
 
-                if (player.length > 0) {
-                    player[0].Explode();
-                    GameObjects.players.splice(GameObjects.players.indexOf(player[0]), 1);
+                if (bombedPlayers.length > 0) {
+                    bombedPlayers[0].Explode();
+                    networkManager?.sendExplode(bombedPlayers[0]);
+                    playerManager.players.delete(bombedPlayers[0].uuid);
                 }
+
+
                 // Maybe add some more explosion FX?
-                if (GameObjects.players.length > 1)
+                if (playerManager.players.size > 1 && !networkManager)
                     this.BombRandomPlayer();
-                else {
-                    GameObjects.smokeParticles?.stop();
-                    this.time.delayedCall(2000, () => {this.WinAnimation()});
-                }
+            }
+            if (playerManager.players.size <= 1) {
+                GameObjects.smokeParticles?.stop();
+                this.time.delayedCall(2000, () => {this.WinAnimation()});
             }
             Variables.bombTime++;
                     
@@ -86,29 +91,31 @@
         }
 
         BombRandomPlayer() {
-            const randomIndex = Math.floor(Math.random() * (GameObjects.players.length));
-            GameObjects.players[randomIndex].Tag(true);
+            const randomIndex = Math.floor(Math.random() * (playerManager.players.size));
+            [...playerManager.players.values()][randomIndex].Tag(true);
             Variables.bombTime = 0;
             Variables.flashDelay = 1;
         }
 
         WinAnimation() {
+            console.log("Winning!");
             this.time.removeAllEvents();
-            GameObjects.players[0].canMove = false;
-            GameObjects.players[0].setCollideWorldBounds(false);
-            GameObjects.players[0].body!.checkCollision.none = true;
-            GameObjects.players[0].setVelocity(0);
-            GameObjects.players[0].setGravityY(-Variables.currentMap.gravity! -600);
+            const player = [...playerManager.players.values()][0];
+            player.canMove = false;
+            player.setCollideWorldBounds(false);
+            player.body!.checkCollision.none = true;
+            player.setVelocity(0);
+            player.setGravityY(-Variables.currentMap.gravity! -600);
 
             const playerOffscreenCheck = setInterval(() => {
-                if (GameObjects.players[0].y < 0) {
+                if (player.y < 0) {
                     clearInterval(playerOffscreenCheck);
                     this.cameras.main.fadeOut(1500, 0, 0, 0);
                 }
             }, 500)
             
             this.cameras.main.on(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-                GameObjects.players = [];
+                playerManager.clearPlayers();
                 this.scene.switch("uiscene");
                 this.scene.stop("gamescene");
                 currentUIElement.set(Selectionscreen);
@@ -117,11 +124,13 @@
 
         
         UpdateCamera() {
-            const playersX = GameObjects.players.map(player => player.x);
-            const playersY = GameObjects.players.map(player => player.y);
+            const players = [...playerManager.players.values()];
 
-            const centerX = playersX.reduce((sum, x) => sum + x, 0)/GameObjects.players.length;
-            const centerY = playersY.reduce((sum, y) => sum + y, 0)/GameObjects.players.length;
+            const playersX = players.map(player => player.x);
+            const playersY = players.map(player => player.y);
+
+            const centerX = playersX.reduce((sum, x) => sum + x, 0)/playerManager.players.size;
+            const centerY = playersY.reduce((sum, y) => sum + y, 0)/playerManager.players.size;
             this.cameras.main.centerOn(centerX, centerY);
 
             const distX = Math.abs(Math.max(...playersX) - Math.min(...playersX))+CONSTANTS.CAMERA_OFFSET;
@@ -137,11 +146,11 @@
         // This function is run on every frame
         update() {
             this.UpdateCamera();
-            GameObjects.players.forEach((player) => {
+            playerManager.players.forEach((player) => {
                 player.Update();
             })
             modManager.updateMods(this);
-            // Variables.networkManager?.sendPlayerData();
+            networkManager?.sendPlayerData();
         }
 
     }

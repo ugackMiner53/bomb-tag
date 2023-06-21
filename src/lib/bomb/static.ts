@@ -2,6 +2,8 @@ import type { Player } from "./player/player";
 import type { PlayerConfig } from "./player/playerconfig";
 import ModManager from "./mod/manager";
 import { Maps } from "./builtin/maps";
+import PlayerManager from "./player/playermanager";
+import type NetworkManager from "./networking/networkmanager";
 
 export const CONSTANTS = {
     // Screen Variables
@@ -34,13 +36,17 @@ export const Variables = {
     currentMap: Maps[0],
     mapWidth: CONSTANTS.SCREEN_WIDTH,
     mapHeight: CONSTANTS.SCREEN_HEIGHT,
-    playerConfigs: <PlayerConfig[]>[],
 }
 
-export const GameObjects = <GameObjects>{players: <Player[]>[]};
-interface GameObjects {
-    players : Player[],
-    smokeParticles : Phaser.GameObjects.Particles.ParticleEmitter,
-}
+export const GameObjects = <{
+    smokeParticles : Phaser.GameObjects.Particles.ParticleEmitter
+}>{};
 
+export const playerManager = new PlayerManager();
 export const modManager = new ModManager();
+
+// export for assignment
+export function setNetworkManager(newNetworkManager : NetworkManager|undefined) {
+    networkManager = newNetworkManager;
+}
+export let networkManager : NetworkManager|undefined = undefined;
