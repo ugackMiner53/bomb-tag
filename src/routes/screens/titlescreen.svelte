@@ -61,8 +61,8 @@
 <div id="titlescreen">
     <img src="/assets/logo.png" alt="Bomb Tag" />
     <div class="buttons">
-        <button on:click={() => {$currentUIElement = Selectionscreen}}>Singleplayer</button>
-        <button on:click={() => {$currentUIElement = Multiplayerscreen}}>Multiplayer</button>
+        <button on:click={() => {$currentUIElement = Selectionscreen}}>Local Play</button>
+        <!-- <button on:click={() => {$currentUIElement = Multiplayerscreen}}>Online Play</button> -->
         <button on:click={() => {$currentUIElement = Modscreen}}>Mods</button>
     </div>
 </div>
