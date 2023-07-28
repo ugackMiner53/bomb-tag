@@ -6,10 +6,13 @@
     import Selectionscreen from "./selectionscreen.svelte";
     
     onMount(() => {
-        setNetworkManager(new NetworkManager("ws://24ae-173-95-152-41.ngrok-free.app", () => {
-            console.log("Recieved Connection!");
-            $currentUIElement = Selectionscreen;
-        }));
+        const url = window.prompt("Please enter server address");
+        if (url) {
+            setNetworkManager(new NetworkManager(url, () => {
+                console.log("Recieved Connection!");
+                $currentUIElement = Selectionscreen;
+            }));
+        }
     })
 </script>
 

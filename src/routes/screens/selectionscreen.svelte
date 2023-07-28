@@ -114,6 +114,11 @@
     
     export const configs = writable(playerManager.playerConfigs);
 
+    export const gameConfig = writable({
+        bombTime: 30,
+        map: Maps[0]
+    })
+
     export function startGame() {
         if (playerManager.playerConfigs.length >= 2) {
             currentUIElement.set(Gamescreen);
@@ -123,6 +128,15 @@
     export function updatePlayerConfigUI() {
         console.log("Trying to rerender...");
         configs.set(playerManager.playerConfigs);
+    }
+
+    export function updateGameConfigUI() {
+        gameConfig.set({
+            bombTime: Variables.maxBombTime,
+            map: Variables.currentMap
+        })
+        Variables.maxBombTime = Variables.maxBombTime;
+        Variables.currentMap.id = Variables.currentMap.id;
     }
 </script>
 
@@ -156,15 +170,22 @@
             throw "Could not find Map with that name!";
         } else {
             Variables.currentMap = newMap;
+            networkManager?.sendGameInfo();
+            updateGameConfigUI();
         }
     }
 
+    function updateBombTime(event : Event) {
+        Variables.maxBombTime = Number((<HTMLInputElement>event.target).value);
+        networkManager?.sendGameInfo();
+        updateGameConfigUI();   
+    }
 </script>
 
 <div id="selectionScene" transition:fade>
     <div class="mapSelection">
         <label for="mapSelect">Map</label>
-        <select name="Select Map" id="mapSelect" value={Variables.currentMap.id} on:change={updateMap}>
+        <select name="Select Map" id="mapSelect" value={$gameConfig.map.id} on:change={updateMap}>
             {#each Maps as map}
                 <option value={map.id}>{map.name}</option>
             {/each}
@@ -172,14 +193,14 @@
     </div>
     <div class="bombTimeSelection">
         <label for="bombTime">Bomb Time</label>
-        <input type="range" name="Bomb Time" id="bombTime" bind:value={Variables.maxBombTime} min="1" max="60" />
+        <input type="range" name="Bomb Time" id="bombTime" bind:value={$gameConfig.bombTime} min="1" max="60" on:change={updateBombTime}/>
     </div>
     <button id="startGame" on:click={() => {if (networkManager) {networkManager.startGame()} else {startGame()}}}>
         <span>Start Game</span>
     </button>
     <div id="playerList">
         {#each $configs as playerConfig}
-            <Playerconfig removeEvent={playerManager.playerConfigs.length > 2 ? removeByUUID : undefined} playerConfig={playerConfig} />
+            <Playerconfig removeEvent={(playerManager.playerConfigs.length > 2 || networkManager != undefined) ? removeByUUID : undefined} playerConfig={playerConfig} />
         {/each}
         {#if $configs.length < 4}
             <div id="addNewPlayer" on:click={addNewPlayer} on:keydown={addNewPlayer}>

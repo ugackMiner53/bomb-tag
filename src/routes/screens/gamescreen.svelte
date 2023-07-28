@@ -80,6 +80,7 @@
                     this.BombRandomPlayer();
             }
             if (playerManager.players.size <= 1) {
+                console.log(playerManager.players);
                 GameObjects.smokeParticles?.stop();
                 this.time.delayedCall(2000, () => {this.WinAnimation()});
             }

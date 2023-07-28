@@ -1,7 +1,8 @@
 import type { Player } from "../player/player";
 import { Variables, playerManager } from "../static";
 import { ControlConfigEnum, PlayerConfig } from "../player/playerconfig";
-import { startGame, updatePlayerConfigUI } from "../../../routes/screens/selectionscreen.svelte";
+import { startGame, updateGameConfigUI, updatePlayerConfigUI } from "../../../routes/screens/selectionscreen.svelte";
+import { Maps } from "../builtin/maps";
 
 export default class NetworkManager {
 
@@ -42,6 +43,19 @@ export default class NetworkManager {
                 break;
             }
 
+            case "gameSetting": {
+                console.log("Recieved game info!");
+                Variables.maxBombTime = data.maxBombTime;
+                const newMap = Maps.find(map => map.id == data.map);
+                if (!newMap) {
+                    throw "Could not find Map with that name!";
+                } else {
+                    Variables.currentMap = newMap;
+                }
+                updateGameConfigUI();
+                break;
+            }
+
             case "playerConfig": {
                 console.log("Recieved playerconfig");
                 this.EditPlayerConfig(data.playerConfig);
@@ -79,23 +93,12 @@ export default class NetworkManager {
             }
             
             case "playerAbility": {
-                playerManager.netPlayers.get(data.uuid)?.ability?.Recharge(); // There *must* be some better way to do this!
+                // playerManager.netPlayers.get(data.uuid)?.ability?.Recharge(); // There *must* be some better way to do this!
                 playerManager.netPlayers.get(data.uuid)?.ability?.Use();
                 break;
             }
 
             case "playerTag": {
-                // Why shouldn't we loop over all players here, regardless of net status? Shouldn't we trust the server?
-                // if (playerManager.localPlayers.has(data.taggedUUID)) {
-                //     playerManager.localPlayers.get(data.taggedUUID)?.Tag(true);
-                // }
-                // playerManager.netPlayers.forEach((player, uuid) => {
-                //     if (uuid == data.taggedUUID) {
-                //         player.Tag(true);
-                //     } else if (player.hasBomb) {
-                //         player.Tag(false);
-                //     }
-                // })
                 playerManager.players.forEach((player, uuid) => {
                     if (uuid == data.taggedUUID) {
                         player.Tag(true);
@@ -107,7 +110,6 @@ export default class NetworkManager {
             }
 
             case "playerExplode": {
-                console.log(`${data.explodedUUID} should fucking die`);
                 const player = playerManager.players.get(data.explodedUUID);
                 player?.Explode();
                 playerManager.players.delete(data.explodedUUID);
@@ -125,7 +127,12 @@ export default class NetworkManager {
 
 
     sendGameInfo() {
-        // dont wanna
+        console.log("Sending game info!");
+        this.send({
+            type: "gameSetting",
+            maxBombTime: Variables.maxBombTime,
+            map: Variables.currentMap.id
+        })
     }
 
     sendPlayerConfig(playerConfig : PlayerConfig) {
@@ -166,7 +173,8 @@ export default class NetworkManager {
                     x: player.body?.velocity.x,
                     y: player.body?.velocity.y
                 },
-                bomb: player.hasBomb
+                bomb: player.hasBomb,
+                canCollide: player.canCollide
             };
             localPlayerData.players.push(playerData);
         })

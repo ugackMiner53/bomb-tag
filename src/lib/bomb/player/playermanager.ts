@@ -36,10 +36,8 @@ export default class PlayerManager {
 
         this.players.forEach((player, uuid) => {
             if (player instanceof NetworkPlayer) {
-                console.log(`${uuid} is instance of NetworkPlayer`)
                 this.netPlayers?.set(uuid, player);
             } else {
-                console.log(`${uuid} is not instance of NetworkPlayer`)
                 this.localPlayers?.set(uuid, player);
             }
         })

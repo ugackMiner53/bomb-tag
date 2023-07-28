@@ -1,5 +1,6 @@
 import type Ability from "../types/ability";
 import type * as Input from "../control/input";
+import * as Phaser from "phaser";
 import { GameObjects, Variables, networkManager } from "../static";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
