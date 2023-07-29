@@ -42,6 +42,7 @@
         gameObjects: GameObjects,
         variables: Variables,
         constants: CONSTANTS,
+        playerManager: playerManager,
         game: game,
     }
 
@@ -62,7 +63,7 @@
     import { onMount } from "svelte";
     import Titlescreen from "../screens/titlescreen.svelte";
 
-    import { CONSTANTS, GameObjects, modManager, Variables } from "$lib/bomb/static";
+    import { CONSTANTS, GameObjects, modManager, playerManager, Variables } from "$lib/bomb/static";
     import { MainGame } from "../screens/gamescreen.svelte";
     import Gamescreen from "../screens/gamescreen.svelte";
     import { ValidateMap } from "$lib/bomb/types/map";

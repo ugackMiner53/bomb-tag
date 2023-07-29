@@ -9,7 +9,7 @@ export default class Ability {
     cooldown! : number;
     duration? : number;
     canUse = true;
-    cooldownTimer : Phaser.Time.TimerEvent | null = null;
+    // cooldownTimer : Phaser.Time.TimerEvent | null = null;
     particle? : Phaser.GameObjects.Particles.ParticleEmitter;
 
     Setup(player : Player) : void {
@@ -17,18 +17,27 @@ export default class Ability {
     }
 
     Use() : void {
-        this.player.setTint(this.player.color);
+        // this.player.setTint(this.player.color);
         this.canUse = false;
-        this.cooldownTimer = this.player.scene.time.delayedCall(this.cooldown, () => {
+        this.player.scene.time.delayedCall(this.cooldown, () => {
             this.Recharge();
         })
+        if (this.duration) {
+            this.player.scene.time.delayedCall(this.duration, () => {
+                this.End();
+            })
+        }
         if (!(this.player instanceof NetworkPlayer)) {
             networkManager?.sendAbility(this.player.uuid);
         }
     }
+
+    End() : void {
+        // Implemented for subclasses
+    }
     
     Recharge() : void {
-        this.player.setTint(this.player.color);
+        // this.player.setTint(this.player.color);
         this.canUse = true;
     }
 }

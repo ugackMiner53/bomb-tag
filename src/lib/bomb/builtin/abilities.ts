@@ -54,17 +54,17 @@ export class PhaseAbility extends Ability
         this.player.speedPercentage += .25;
 
         this.particle?.explode(10, this.player.x, this.player.y);
-        this.player.scene.time.delayedCall(1000, () => {
-            this.particle?.stop();
-        })
-
-        this.player.scene.time.delayedCall(this.duration, () => {
-            this.player.setAlpha(1);
-            this.player.speedPercentage -= .25;
-            this.player.canCollide = true;
-        })
+        // this.player.scene.time.delayedCall(1000, () => {
+        //     this.particle?.stop();
+        // })
 
         super.Use();
+    }
+
+    End(): void {
+        this.player.setAlpha(1);
+        this.player.speedPercentage -= .25;
+        this.player.canCollide = true;
     }
 }
 
@@ -92,17 +92,16 @@ export class SpeedAbility extends Ability
 
         this.particle?.startFollow(this.player);
         this.particle?.start();
-
-
-        this.player.scene.time.delayedCall(this.duration, () => {
-            if (this.player.body) {
-                this.player.speedPercentage -= .75;
-                this.player.jumpPercentage -= .5;
-                this.player.setGravityY(Variables.currentMap.gravity!);
-            }
-            this.particle?.stop();
-        })
         super.Use();
+    }
+
+    End(): void {
+        if (this.player.body) {
+            this.player.speedPercentage -= .75;
+            this.player.jumpPercentage -= .5;
+            this.player.setGravityY(Variables.currentMap.gravity!);
+        }
+        this.particle?.stop();
     }
 }
 
@@ -128,30 +127,27 @@ export class RewindAbility extends Ability {
         if (this.player.body) {
             this.storedPosition = this.player.body!.position.clone();
             this.particle?.explode(10, this.storedPosition.x, this.storedPosition.y);
-    
-            this.player.scene.time.delayedCall(this.duration, () => {
-                this.particle?.stop();
-                this.player.setAlpha(0.5);
-                if (this.player.body) {
-                    this.player.canMove = false;
-                    this.player.body!.checkCollision.none = true;
-                    this.player.setVelocity(0);
-                    this.player.scene.physics.moveTo(this.player, this.storedPosition!.x, this.storedPosition!.y, 1, 250);
-                    this.player.scene.time.delayedCall(250, () => {
-                        this.player.setAlpha(1);
-                        this.player.body!.checkCollision.none = false;
-                        this.player.canMove = true;
-                        this.player.setPosition(this.storedPosition?.x, this.storedPosition?.y);
-                        this.storedPosition = undefined;
-                        this.player.setVelocity(0);
-                        // if (playerManager.players.size > 1) {
-                        // }
-                    })
-                }
-            })
         }
         super.Use();
-    
+    }
+
+    End(): void {
+        this.particle?.stop();
+        this.player.setAlpha(0.5);
+        if (this.player.body) {
+            this.player.canMove = false;
+            this.player.body!.checkCollision.none = true;
+            this.player.setVelocity(0);
+            this.player.scene.physics.moveTo(this.player, this.storedPosition!.x, this.storedPosition!.y, 1, 250);
+            this.player.scene.time.delayedCall(250, () => {
+                this.player.setAlpha(1);
+                this.player.body!.checkCollision.none = false;
+                this.player.canMove = true;
+                this.player.setPosition(this.storedPosition?.x, this.storedPosition?.y);
+                this.storedPosition = undefined;
+                this.player.setVelocity(0);
+            })
+        }
     }
 }
 
