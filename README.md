@@ -8,7 +8,7 @@ A hot potato game where you must tag the other players before you explode!
 - Can be run on a static website
 - Fully moddable to your heart's desires!
 
-\* Online multiplayer has been disabled in the main branch for performance reasons, check out the [online branch](#) for more information
+\* Online multiplayer has been disabled in the main branch for performance reasons, check out the [online branch](https://github.com/ugackMiner53/bomb-tag/tree/online-multiplayer) for more information
 
 ## Setup  
 In order to build the website, all you have to do is clone the git repository, then initalize the project with `npm install` (or `pnpm install`, etc.)

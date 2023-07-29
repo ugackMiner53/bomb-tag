@@ -16,7 +16,9 @@ const config = {
             fallback: undefined,
             precompress: false,
             strict: true
-        })
+        }),
+        paths: process.env.NODE_ENV == "production" ? "/bomb-tag" : "",
+        
 	}
 };
 
