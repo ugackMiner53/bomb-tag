@@ -4,19 +4,26 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="./favicon.png" />
 		<meta name="viewport" content="width=device-width" />
+        <script>
+            // For some reason, if the page doesn't have a trailing slash, it will think that it's not a directory, so we have to add the trailing slash manually.
+            if (!location.href.endsWith("/")) {
+                location.href = location.href + "/";
+            }
+        </script>
 		
-		<link rel="modulepreload" href="./_app/immutable/entry/start.a2076010.js">
+		<link rel="modulepreload" href="./_app/immutable/entry/start.a635123a.js">
 		<link rel="modulepreload" href="./_app/immutable/chunks/index.51646643.js">
-		<link rel="modulepreload" href="./_app/immutable/chunks/singletons.72a7a645.js">
-		<link rel="modulepreload" href="./_app/immutable/chunks/index.c1790117.js">
-		<link rel="modulepreload" href="./_app/immutable/entry/app.c293a16f.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/singletons.74a90de1.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/paths.6e4327db.js">
+		<link rel="modulepreload" href="./_app/immutable/entry/app.846ae9e0.js">
 		<link rel="modulepreload" href="./_app/immutable/chunks/preload-helper.41c905a7.js">
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_17uhnmc = {
+					__sveltekit_10womup = {
+						assets: "/bomb-tag",
 						base: new URL(".", location).pathname.slice(0, -1),
 						env: {}
 					};
@@ -24,8 +31,8 @@
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("./_app/immutable/entry/start.a2076010.js"),
-						import("./_app/immutable/entry/app.c293a16f.js")
+						import("./_app/immutable/entry/start.a635123a.js"),
+						import("./_app/immutable/entry/app.846ae9e0.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});
