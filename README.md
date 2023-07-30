@@ -1,5 +1,7 @@
-![Bomb Tag](./static/assets/logo.png)  
+[![Bomb Tag](./static/assets/logo.png)](https://ugackminer53.github.io/bomb-tag/)  
 A hot potato game where you must tag the other players before you explode!  
+
+[Play it online, all in your browser](https://ugackminer53.github.io/bomb-tag/)
 
 ## Features
 - Completely open source

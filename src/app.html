@@ -4,6 +4,12 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width" />
+        <script>
+            // For some reason, if the page doesn't have a trailing slash, it will think that it's not a directory, so we have to add the trailing slash manually.
+            if (!location.href.endsWith("/")) {
+                location.href = location.href + "/";
+            }
+        </script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

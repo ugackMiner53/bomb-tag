@@ -56,10 +56,11 @@
     import Selectionscreen from "./selectionscreen.svelte";
     import Multiplayerscreen from "./multiplayerscreen.svelte";
     import Modscreen from "./modscreen.svelte";
+    import { base } from "$app/paths";
 </script>
 
 <div id="titlescreen">
-    <img src="/assets/logo.png" alt="Bomb Tag" />
+    <img src="{base}/assets/logo.png" alt="Bomb Tag" />
     <div class="buttons">
         <button on:click={() => {$currentUIElement = Selectionscreen}}>Local Play</button>
         <!-- <button on:click={() => {$currentUIElement = Multiplayerscreen}}>Online Play</button> -->

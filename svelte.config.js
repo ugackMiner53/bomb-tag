@@ -13,12 +13,13 @@ const config = {
             // these options are set automatically — see below
             pages: 'build',
             assets: 'build',
-            fallback: undefined,
-            precompress: false,
-            strict: true
+            // fallback: undefined,
+            // precompress: false,
+            // strict: true
         }),
-        paths: process.env.NODE_ENV == "production" ? "/bomb-tag" : "",
-        
+        paths: {
+            base: process.env.NODE_ENV == "production" ? "/bomb-tag" : "",
+        }
 	}
 };
 
